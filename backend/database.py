@@ -368,15 +368,16 @@ def add_item(data: Dict[str, Any], performed_by: str = 'System'):
     unit_size = data.get('unit_size')
     qty       = float(data.get('quantity', 0))
 
+    unit = data.get('unit', '')
     with get_connection() as conn:
         if unit_size is not None:
             dup = _row(_run(conn, _q(
-                "SELECT id,quantity,unit FROM items WHERE LOWER(name)=LOWER(?) AND unit_size=?"
-            ), (name, unit_size)).fetchone())
+                "SELECT id,quantity,unit,min_stock FROM items WHERE LOWER(name)=LOWER(?) AND unit_size=? AND LOWER(unit)=LOWER(?)"
+            ), (name, unit_size, unit)).fetchone())
         else:
             dup = _row(_run(conn, _q(
-                "SELECT id,quantity,unit FROM items WHERE LOWER(name)=LOWER(?) AND unit_size IS NULL"
-            ), (name,)).fetchone())
+                "SELECT id,quantity,unit,min_stock FROM items WHERE LOWER(name)=LOWER(?) AND unit_size IS NULL AND LOWER(unit)=LOWER(?)"
+            ), (name, unit)).fetchone())
 
         if dup:
             item_id = dup['id']

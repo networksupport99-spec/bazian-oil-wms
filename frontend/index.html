@@ -204,6 +204,22 @@ tr:hover td{background:var(--bg)}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   #menu-btn{display:flex !important}
 }
+/* ── Autocomplete ─────────────────────────────────────────────────────────── */
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);
+  display:none;max-height:220px;overflow-y:auto;margin-top:2px}
+.ac-item{padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover{background:var(--bg)}
+.ac-item small{color:var(--muted);margin-left:6px}
+/* ── Merge banner ─────────────────────────────────────────────────────────── */
+.merge-banner{display:none;align-items:center;gap:8px;padding:9px 12px;
+  background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--radius);
+  color:#1D4ED8;font-size:13px;margin-bottom:14px}
+:root[data-theme="dark"] .merge-banner{background:#1E3A5F;border-color:#2563EB;color:#93C5FD}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .merge-banner{background:#1E3A5F;border-color:#2563EB;color:#93C5FD}}
+.merge-banner-icon{font-size:16px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -319,20 +335,28 @@ tr:hover td{background:var(--bg)}
         <form id="reg-form">
           <div class="form-row col2">
             <div class="form-group"><label>Item Name *</label>
-              <input id="reg-name" placeholder="e.g. Engine Oil 5W-40" required></div>
+              <div class="ac-wrap" id="reg-name-wrap">
+                <input id="reg-name" placeholder="e.g. Engine Oil 5W-40" required autocomplete="off"
+                  oninput="onRegNameInput()" onblur="setTimeout(()=>document.getElementById('reg-name-ac').style.display='none',200)">
+                <div class="ac-list" id="reg-name-ac"></div>
+              </div></div>
             <div class="form-group"><label>Category *</label>
               <select id="reg-cat" required onchange="onCatChange()">
                 <option value="">Select…</option>
-                <option>Liquid</option><option>Powder</option><option>Glassware</option><option>Others</option>
+                <option>Liquid</option><option>Powder</option><option>Needle</option><option>Glassware</option><option>Others</option>
               </select></div>
           </div>
+          <div id="reg-merge-banner" class="merge-banner">
+            <span class="merge-banner-icon">🔄</span><span></span>
+          </div>
           <div class="form-row col3">
-            <div class="form-group"><label>Initial Quantity</label>
-              <input id="reg-qty" type="number" min="0" step="any" placeholder="0"></div>
-            <div class="form-group"><label>Unit *</label>
-              <input id="reg-unit" placeholder="Liters, kg, pcs…" required></div>
+            <div class="form-group"><label>Quantity (PCS) *</label>
+              <input id="reg-qty" type="number" min="0" step="any" placeholder="0" required></div>
+            <div class="form-group"><label>Unit of Measurement *</label>
+              <input id="reg-unit" placeholder="ML, GR, CC, pcs…" required></div>
             <div class="form-group"><label>Pack/Unit Size</label>
-              <input id="reg-usize" type="number" min="0" step="any" placeholder="e.g. 500"></div>
+              <input id="reg-usize" type="number" min="0" step="any" placeholder="e.g. 500"
+                oninput="checkItemMatch()"></div>
           </div>
           <div class="form-row col2">
             <div class="form-group"><label>Brand</label>
@@ -772,6 +796,7 @@ function navigate(page) {
   if (window.innerWidth < 769) document.getElementById('sidebar').classList.remove('open');
   if (page === 'dashboard')  loadDashboard();
   if (page === 'inventory')  loadInventory();
+  if (page === 'register')   loadRegItems();
   if (page === 'checkout')   loadCheckoutItems();
   if (page === 'activity')   loadActivity();
   if (page === 'expiry')     loadExpiry();
@@ -1129,16 +1154,99 @@ async function openHistoryModal(item) {
 }
 
 // ── Register Form ─────────────────────────────────────────────────────────────
+let _regItems = [];
+async function loadRegItems() {
+  try { _regItems = await api('/items'); } catch {}
+}
+
 function onCatChange() {
   const cat = document.getElementById('reg-cat').value;
+  const unitInput = document.getElementById('reg-unit');
+  const catUOM = { Liquid:'ML', Powder:'GR', Needle:'CC' };
+  if (catUOM[cat]) {
+    unitInput.value = catUOM[cat];
+    unitInput.readOnly = true;
+    unitInput.style.background = 'var(--bg)';
+    unitInput.style.color = 'var(--muted)';
+  } else {
+    unitInput.readOnly = false;
+    unitInput.style.background = '';
+    unitInput.style.color = '';
+  }
   document.getElementById('glass-fields').style.display = cat === 'Glassware' ? 'block' : 'none';
   document.getElementById('custom-field').style.display = cat === 'Others'    ? 'block' : 'none';
+  checkItemMatch();
 }
+
+function checkItemMatch() {
+  const name   = document.getElementById('reg-name').value.trim().toLowerCase();
+  const usize  = parseFloat(document.getElementById('reg-usize').value) || null;
+  const unit   = document.getElementById('reg-unit').value.trim().toLowerCase();
+  const banner = document.getElementById('reg-merge-banner');
+  const minInp = document.getElementById('reg-min');
+  if (!name) { banner.style.display='none'; minInp.readOnly=false; minInp.style.background=''; return; }
+  const match = _regItems.find(item =>
+    item.name.toLowerCase() === name &&
+    (usize === null ? item.unit_size == null : parseFloat(item.unit_size) == usize) &&
+    (!unit || item.unit.toLowerCase() === unit)
+  );
+  if (match) {
+    minInp.value = match.min_stock;
+    minInp.readOnly = true;
+    minInp.style.background = 'var(--bg)';
+    minInp.style.color = 'var(--muted)';
+    banner.style.display = 'flex';
+    banner.querySelector('span:last-child').textContent =
+      `Existing item — current stock: ${match.quantity} ${match.unit}. Quantity will be added.`;
+  } else {
+    minInp.readOnly = false;
+    minInp.style.background = '';
+    minInp.style.color = '';
+    banner.style.display = 'none';
+  }
+}
+
+let _acTimer;
+function onRegNameInput() {
+  clearTimeout(_acTimer);
+  _acTimer = setTimeout(() => {
+    const val  = document.getElementById('reg-name').value.trim().toLowerCase();
+    const list = document.getElementById('reg-name-ac');
+    if (!val) { list.style.display='none'; return; }
+    const matches = _regItems.filter(i => i.name.toLowerCase().includes(val)).slice(0, 6);
+    if (!matches.length) { list.style.display='none'; checkItemMatch(); return; }
+    list.innerHTML = matches.map(i =>
+      `<div class="ac-item" onmousedown="selectRegItem(${i.id})">${i.name}` +
+      (i.unit_size ? ` <small>${i.unit_size} ${i.unit}</small>` : '') + `</div>`
+    ).join('');
+    list.style.display = 'block';
+    checkItemMatch();
+  }, 150);
+}
+
+function selectRegItem(id) {
+  const item = _regItems.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('reg-name').value  = item.name;
+  document.getElementById('reg-name-ac').style.display = 'none';
+  if (item.unit_size != null) document.getElementById('reg-usize').value = item.unit_size;
+  const catSel = document.getElementById('reg-cat');
+  if (!catSel.value && item.category) { catSel.value = item.category; onCatChange(); return; }
+  checkItemMatch();
+}
+
 function resetRegForm() {
   document.getElementById('reg-form').reset();
-  document.getElementById('glass-fields').style.display = 'none';
-  document.getElementById('custom-field').style.display = 'none';
+  document.getElementById('glass-fields').style.display  = 'none';
+  document.getElementById('custom-field').style.display  = 'none';
+  document.getElementById('reg-name-ac').style.display   = 'none';
+  document.getElementById('reg-merge-banner').style.display = 'none';
+  const minInp  = document.getElementById('reg-min');
+  minInp.readOnly = false; minInp.style.background = ''; minInp.style.color = '';
+  const unitInp = document.getElementById('reg-unit');
+  unitInp.readOnly = false; unitInp.style.background = ''; unitInp.style.color = '';
 }
+
 async function submitRegForm(e) {
   e.preventDefault();
   const btn = document.getElementById('reg-btn');
@@ -1170,6 +1278,7 @@ async function submitRegForm(e) {
       custom_spec:       document.getElementById('reg-cspec').value||null,
       image_path:        imagePath,
     })});
+    await loadRegItems();
     toast(r.merged ? 'Item merged — stock updated' : `"${r.name||document.getElementById('reg-name').value}" registered`);
     resetRegForm(); navigate('inventory');
   } catch(ex) { toast(ex.message, 'error', 5000); }
