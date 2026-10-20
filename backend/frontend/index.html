@@ -1293,7 +1293,7 @@ async function loadCheckoutItems() {
     sel.innerHTML = '<option value="">Select an item…</option>';
     items.forEach(i => {
       const opt = new Option(
-        `${i.name}${i.unit_size?' ('+i.unit_size+i.unit+')':''} — ${fmt(i.quantity)} ${i.unit}`,
+        `${i.name}${i.unit_size?' ('+i.unit_size+i.unit+')':''} — ${fmt(i.quantity)} PCS`,
         i.id
       );
       opt.dataset.qty  = i.quantity;
@@ -1308,7 +1308,7 @@ function onCoItemChange() {
   const opt  = sel.options[sel.selectedIndex];
   const info = document.getElementById('co-stock-info');
   if (sel.value && opt.dataset.qty != null) {
-    document.getElementById('co-stock-text').textContent = `Current stock: ${fmt(opt.dataset.qty)} ${opt.dataset.unit}`;
+    document.getElementById('co-stock-text').textContent = `Current stock: ${fmt(opt.dataset.qty)} PCS`;
     info.style.display = 'block';
   } else { info.style.display = 'none'; }
   document.getElementById('co-preview').style.display = 'none';
@@ -1325,8 +1325,8 @@ function updateCoPreview() {
     const after = cur - qty;
     p.style.display = 'block';
     document.getElementById('co-preview-text').innerHTML = after < 0
-      ? `<span style="color:var(--danger)">⚠ Exceeds stock (${fmt(cur)} ${esc(unit)} available)</span>`
-      : `After withdrawal: <strong>${fmt(after)}</strong> ${esc(unit)}`;
+      ? `<span style="color:var(--danger)">⚠ Exceeds stock (${fmt(cur)} PCS available)</span>`
+      : `After withdrawal: <strong>${fmt(after)}</strong> PCS`;
   } else p.style.display = 'none';
 }
 async function submitCheckout(e) {
