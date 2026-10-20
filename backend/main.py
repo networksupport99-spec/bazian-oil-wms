@@ -29,7 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
+_FRONTEND = Path(__file__).resolve().parent / "frontend"
 if _FRONTEND.exists():
     app.mount("/static", StaticFiles(directory=str(_FRONTEND)), name="static")
 
