@@ -542,7 +542,7 @@ def get_expired_batches() -> List[Dict]:
         sql = (
             "SELECT b.id,b.item_id,b.quantity,b.expiry_date,b.batch_ref,"
             "i.name AS item_name,i.unit,i.category,i.location,"
-            "EXTRACT(DAY FROM CURRENT_DATE - b.expiry_date)::INTEGER AS days_overdue "
+            "(CURRENT_DATE - b.expiry_date)::INTEGER AS days_overdue "
             "FROM batches b JOIN items i ON b.item_id=i.id "
             f"WHERE {_expired_where()} AND b.quantity>0 {_fefo()}"
         )
@@ -566,7 +566,7 @@ def get_near_expiry_batches(days: int = 30) -> List[Dict]:
         sql = (
             "SELECT b.id,b.item_id,b.quantity,b.expiry_date,b.batch_ref,"
             "i.name AS item_name,i.unit,i.category,i.location,"
-            f"EXTRACT(DAY FROM b.expiry_date - CURRENT_DATE)::INTEGER AS days_left "
+            "(b.expiry_date - CURRENT_DATE)::INTEGER AS days_left "
             "FROM batches b JOIN items i ON b.item_id=i.id "
             f"WHERE {_near_expiry_where(days)} AND b.quantity>0 {_fefo()}"
         )
