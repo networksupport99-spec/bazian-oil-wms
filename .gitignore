@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+*.env
+
+# Database files (local only — production uses PostgreSQL)
+*.db
+*.sqlite
+*.sqlite3
+
+# Assets uploaded by users
+backend/assets/*
+!backend/assets/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
